@@ -60,6 +60,34 @@ Feature modules access MongoDB by importing `MongooseModule.forFeature([{ name: 
 
 `ConfigModule` must come before `DatabaseModule` (and all other modules) since it is a global provider that others depend on at startup.
 
+### Business domain modules (`src/<domain>/`)
+
+Seven feature domains, each with a `<domain>.schema.ts` and `<domain>s.module.ts`. All monetary values are stored in cents (integers) to avoid floating-point precision issues. See `docs/domain-model.md` for full field references.
+
+| Module | Collection | Notes |
+|--------|------------|-------|
+| `UsersModule` | `users` | Cash balance in cents |
+| `AssetsModule` | `assets` | ETF/fund metadata; ticker is unique uppercase |
+| `PortfoliosModule` | `portfolios` | One position per user per asset (compound unique index) |
+| `TradesModule` | `trades` | Immutable ledger — insert only, always inside a transaction |
+| `PriceTicksModule` | `price_ticks` | Time Series (timeField: `timestamp`, metaField: `metadata`) |
+| `DividendsModule` | `dividends` | Time Series (timeField: `exDate`, metaField: `metadata`) |
+| `AlertsModule` | `alerts` | Price threshold triggers for Change Streams + WebSocket |
+
+**Time Series collections** (`price_ticks`, `dividends`) — their modules implement `OnModuleInit` and call `db.createCollection()` with `timeseries` options on startup if the collection does not yet exist. Never drop and recreate these collections without migrating the data.
+
+**Trades + transactions** — every trade write must use a multi-document transaction: `buy` deducts `User.cashBalanceCents` and upserts `Portfolio.shares`; `sell` does the reverse. Trade documents are never updated after insertion.
+
+**Alerts + Change Streams** — a Change Stream on `price_ticks` watches `closeCents` and fires WebSocket notifications when it crosses an alert's `targetPriceCents`. After firing, `Alert.isTriggered` is set to `true` and `triggeredAt` is recorded.
+
+## Docs
+
+Project documentation lives in `docs/`:
+
+- `docs/domain-model.md` — full field-level reference for all 7 business domains
+- `docs/how-to-add-schema.md` — step-by-step guide to adding a new domain module
+- `how-to-mongodb.md` — general Mongoose usage patterns in this project
+
 ## Docker
 
 Three separate Dockerfiles, one per environment:
