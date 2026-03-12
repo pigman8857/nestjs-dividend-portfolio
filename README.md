@@ -25,17 +25,19 @@ A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trade
 
 ---
 
-## Key Dependencies
+## Key Dependencies (as of 2026-03-12)
 
 | Package | Version |
 |---------|---------|
-| `@nestjs/common` | ^11.0.1 |
-| `@nestjs/core` | ^11.0.1 |
-| `@nestjs/config` | ^4.0.3 |
-| `@nestjs/mongoose` | ^11.0.4 |
-| `mongoose` | ^9.3.0 |
-| `joi` | ^18.0.2 |
-| `typescript` | ^5.7.3 |
+| `@nestjs/common` | 11.1.16 |
+| `@nestjs/core` | 11.1.16 |
+| `@nestjs/config` | 4.0.3 |
+| `@nestjs/mongoose` | 11.0.4 |
+| `mongoose` | 9.3.0 |
+| `joi` | 18.0.2 |
+| `reflect-metadata` | 0.2.2 |
+| `rxjs` | 7.8.2 |
+| `typescript` | 5.9.3 |
 
 ---
 
