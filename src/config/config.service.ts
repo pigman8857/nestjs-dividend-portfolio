@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfigService } from '@nestjs/config';
 
+export interface MongoConfig {
+  uri: string;
+  dbName: string;
+}
+
 @Injectable()
 export class ConfigService {
   constructor(private readonly config: NestConfigService) {}
@@ -17,7 +22,7 @@ export class ConfigService {
     return this.config.get<number>('PORT', 3000);
   }
 
-  get mongoUri(): string {
-    return this.config.getOrThrow<string>('MONGO_URI');
+  get mongo(): MongoConfig {
+    return this.config.getOrThrow<MongoConfig>('mongo');
   }
 }
