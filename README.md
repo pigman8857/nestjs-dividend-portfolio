@@ -179,6 +179,7 @@ npm run test:e2e
 | File | Description |
 |------|-------------|
 | `docs/api-reference.md` | REST endpoint reference for all 7 domains |
+| `docs/user-flows.md` | End-to-end business and user flows |
 | `docs/domain-model.md` | Full field reference for all 7 business domains |
 | `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
 | `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
