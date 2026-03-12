@@ -15,7 +15,7 @@ A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trade
 
 ---
 
-## Requirements
+## Requirements (as of 2026-03-12)
 
 | Tool | Version |
 |------|---------|
