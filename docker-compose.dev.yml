@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+    ports:
+      - "${PORT:-3000}:3000"
+    # No volume mounts — uses code baked into the image at build time
+    # Expects an external/shared MongoDB (set MONGO_URI in .env)

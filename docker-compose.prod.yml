@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+      MONGO_URI: ${MONGO_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+    ports:
+      - "${PORT:-3000}:3000"
+    restart: unless-stopped
+    # No .env file — all vars must be set in the host environment or CI/CD secrets

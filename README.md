@@ -1,4 +1,4 @@
-# MongoOracle
+# nestMongoOracle
 
 A NestJS application with production-first configuration and MongoDB integration via Mongoose.
 
@@ -201,6 +201,82 @@ npm run start:dev
 npm run build
 npm run start:prod
 ```
+
+---
+
+## Docker
+
+Each environment has its own Dockerfile and docker-compose file.
+
+| Environment | Dockerfile | docker-compose |
+|-------------|------------|----------------|
+| Localhost | `Dockerfile.localhost` | `docker-compose.localhost.yml` |
+| Development | `Dockerfile.dev` | `docker-compose.dev.yml` |
+| Production | `Dockerfile.prod` | `docker-compose.prod.yml` |
+
+### Localhost
+
+Spins up the app and a MongoDB container together. The `src/` directory is mounted as a volume so code changes reflect immediately without rebuilding.
+
+Requires a `.env` file in the project root (see [Local Development Setup](#local-development-setup)).
+
+```bash
+# Build image
+docker build -f Dockerfile.localhost -t nest-mongo-oracle:localhost .
+
+# Run with docker compose (recommended)
+docker compose -f docker-compose.localhost.yml up
+
+# Rebuild image and run
+docker compose -f docker-compose.localhost.yml up --build
+
+# Stop and remove containers
+docker compose -f docker-compose.localhost.yml down
+```
+
+### Development
+
+Code is baked into the image at build time — no volume mounts. Expects an external MongoDB, configured via `.env`.
+
+Requires a `.env` file in the project root (see [Local Development Setup](#local-development-setup)).
+
+```bash
+# Build image
+docker build -f Dockerfile.dev -t nest-mongo-oracle:dev .
+
+# Run with docker compose
+docker compose -f docker-compose.dev.yml up
+
+# Rebuild image and run
+docker compose -f docker-compose.dev.yml up --build
+
+# Stop and remove containers
+docker compose -f docker-compose.dev.yml down
+```
+
+### Production
+
+Multi-stage build that produces a minimal image with only compiled output and production dependencies. Runs as a non-root user. No `.env` file — all variables must be provided via the host environment or CI/CD secrets.
+
+```bash
+# Build image
+docker build -f Dockerfile.prod -t nest-mongo-oracle:prod .
+
+# Run with docker compose
+MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net \
+MONGO_DB_NAME=mongo_oracle \
+docker compose -f docker-compose.prod.yml up
+
+# Rebuild image and run
+MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net \
+MONGO_DB_NAME=mongo_oracle \
+docker compose -f docker-compose.prod.yml up --build
+
+# Stop and remove containers
+docker compose -f docker-compose.prod.yml down
+```
+
+---
 
 ## Running Tests
 
