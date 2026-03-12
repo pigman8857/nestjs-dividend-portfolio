@@ -1,6 +1,17 @@
-# nestMongoOracle
+# nestjs-dividend-portfolio
 
-A NestJS application with production-first configuration and MongoDB integration via Mongoose.
+A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trades, and projecting dividend yields — backed by MongoDB.
+
+---
+
+## Features
+
+- **Portfolio tracking** — manage user positions and cash balances
+- **Trade ledger** — immutable buy/sell records with multi-document ACID transactions
+- **Dividend history** — MongoDB Time Series collections for efficient historical payout queries
+- **Price ticks** — OHLCV time series data per asset
+- **Price alerts** — threshold-based alerts designed for Change Stream + WebSocket integration
+- **Production-first config** — environment variables validated on startup; no `.env` in production
 
 ---
 
@@ -25,6 +36,26 @@ A NestJS application with production-first configuration and MongoDB integration
 | `mongoose` | ^9.3.0 |
 | `joi` | ^18.0.2 |
 | `typescript` | ^5.7.3 |
+
+---
+
+## Domain Model
+
+Seven business domains, each with its own schema and module:
+
+| Domain | Collection | Type | Description |
+|--------|------------|------|-------------|
+| `users` | `users` | Standard | User accounts and cash balances |
+| `assets` | `assets` | Standard | ETF/fund metadata |
+| `portfolios` | `portfolios` | Standard | User holdings (one position per user per asset) |
+| `trades` | `trades` | Standard | Immutable buy/sell ledger |
+| `price-ticks` | `price_ticks` | Time Series | OHLCV price data per asset |
+| `dividends` | `dividends` | Time Series | Historical dividend payouts per asset |
+| `alerts` | `alerts` | Standard | Price threshold alerts |
+
+All monetary values are stored in **cents** (integers) to avoid floating-point precision issues.
+
+See `docs/domain-model.md` for the full field reference.
 
 ---
 
@@ -53,7 +84,7 @@ The app uses a **production-first** config strategy:
 | `MONGO_URI` | Yes | — | Full MongoDB connection URI |
 | `MONGO_DB_NAME` | Yes | — | MongoDB database name |
 
-### Local Development Setup
+### Local Development
 
 Create a `.env` file in the project root:
 
@@ -61,132 +92,18 @@ Create a `.env` file in the project root:
 NODE_ENV=development
 PORT=3000
 MONGO_URI=mongodb://localhost:27017
-MONGO_DB_NAME=mongo_oracle
+MONGO_DB_NAME=nestjs_dividend_portfolio
 ```
 
-### Production Setup
+### Production
 
-Set environment variables directly on the host or in your container/orchestration platform. Do **not** use a `.env` file in production.
+Set environment variables on the host or in your container platform. Do **not** use a `.env` file in production.
 
 ```bash
 export NODE_ENV=production
 export PORT=3000
 export MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net
-export MONGO_DB_NAME=mongo_oracle
-```
-
-### Adding New Config Values
-
-1. Add the env var and Joi rule to `src/config/config.module.ts`:
-
-```ts
-validationSchema: Joi.object({
-  // ...existing
-  REDIS_URL: Joi.string().uri().required(),
-})
-```
-
-2. If grouping under a namespace, create `src/config/redis.config.ts`:
-
-```ts
-import { registerAs } from '@nestjs/config';
-
-export default registerAs('redis', () => ({
-  url: process.env.REDIS_URL,
-}));
-```
-
-3. Register the factory in `ConfigModule`:
-
-```ts
-load: [mongoConfig, redisConfig],
-```
-
-4. Add a typed getter to `src/config/config.service.ts`:
-
-```ts
-get redis() {
-  return this.config.getOrThrow('redis');
-}
-```
-
----
-
-## Database Module
-
-`DatabaseModule` establishes the Mongoose connection using values from `ConfigService`. It is registered once in `AppModule` and the connection is shared across the entire app.
-
-### Using MongoDB in a Feature Module
-
-**Step 1 — Define a schema** (`src/cats/cat.schema.ts`):
-
-```ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
-
-@Schema()
-export class Cat {
-  @Prop({ required: true })
-  name: string;
-
-  @Prop()
-  age: number;
-}
-
-export type CatDocument = HydratedDocument<Cat>;
-export const CatSchema = SchemaFactory.createForClass(Cat);
-```
-
-**Step 2 — Register the schema in the feature module** (`src/cats/cats.module.ts`):
-
-```ts
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Cat, CatSchema } from './cat.schema';
-import { CatsService } from './cats.service';
-import { CatsController } from './cats.controller';
-
-@Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Cat.name, schema: CatSchema }]),
-  ],
-  providers: [CatsService],
-  controllers: [CatsController],
-})
-export class CatsModule {}
-```
-
-**Step 3 — Inject the model in a service** (`src/cats/cats.service.ts`):
-
-```ts
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Cat, CatDocument } from './cat.schema';
-
-@Injectable()
-export class CatsService {
-  constructor(
-    @InjectModel(Cat.name) private readonly catModel: Model<CatDocument>,
-  ) {}
-
-  async findAll(): Promise<Cat[]> {
-    return this.catModel.find().exec();
-  }
-
-  async create(name: string, age: number): Promise<Cat> {
-    return this.catModel.create({ name, age });
-  }
-}
-```
-
-**Step 4 — Register the feature module in `AppModule`**:
-
-```ts
-@Module({
-  imports: [ConfigModule, DatabaseModule, CatsModule],
-})
-export class AppModule {}
+export MONGO_DB_NAME=nestjs_dividend_portfolio
 ```
 
 ---
@@ -216,64 +133,28 @@ Each environment has its own Dockerfile and docker-compose file.
 
 ### Localhost
 
-Spins up the app and a MongoDB container together. The `src/` directory is mounted as a volume so code changes reflect immediately without rebuilding.
-
-Requires a `.env` file in the project root (see [Local Development Setup](#local-development-setup)).
+Spins up the app and a MongoDB container together. `src/` is mounted as a volume for hot reload.
 
 ```bash
-# Build image
-docker build -f Dockerfile.localhost -t nest-mongo-oracle:localhost .
-
-# Run with docker compose (recommended)
-docker compose -f docker-compose.localhost.yml up
-
-# Rebuild image and run
 docker compose -f docker-compose.localhost.yml up --build
-
-# Stop and remove containers
-docker compose -f docker-compose.localhost.yml down
 ```
 
 ### Development
 
-Code is baked into the image at build time — no volume mounts. Expects an external MongoDB, configured via `.env`.
-
-Requires a `.env` file in the project root (see [Local Development Setup](#local-development-setup)).
+Code is baked into the image at build time. Expects an external MongoDB via `.env`.
 
 ```bash
-# Build image
-docker build -f Dockerfile.dev -t nest-mongo-oracle:dev .
-
-# Run with docker compose
-docker compose -f docker-compose.dev.yml up
-
-# Rebuild image and run
 docker compose -f docker-compose.dev.yml up --build
-
-# Stop and remove containers
-docker compose -f docker-compose.dev.yml down
 ```
 
 ### Production
 
-Multi-stage build that produces a minimal image with only compiled output and production dependencies. Runs as a non-root user. No `.env` file — all variables must be provided via the host environment or CI/CD secrets.
+Multi-stage build — compiled output only, no dev deps, runs as non-root. All vars from host environment.
 
 ```bash
-# Build image
-docker build -f Dockerfile.prod -t nest-mongo-oracle:prod .
-
-# Run with docker compose
 MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net \
-MONGO_DB_NAME=mongo_oracle \
-docker compose -f docker-compose.prod.yml up
-
-# Rebuild image and run
-MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net \
-MONGO_DB_NAME=mongo_oracle \
+MONGO_DB_NAME=nestjs_dividend_portfolio \
 docker compose -f docker-compose.prod.yml up --build
-
-# Stop and remove containers
-docker compose -f docker-compose.prod.yml down
 ```
 
 ---
@@ -290,3 +171,14 @@ npm run test:cov
 # e2e tests
 npm run test:e2e
 ```
+
+---
+
+## Documentation
+
+| File | Description |
+|------|-------------|
+| `docs/domain-model.md` | Full field reference for all 7 business domains |
+| `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
+| `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
+| `how-to-mongodb.md` | General Mongoose usage patterns in this project |

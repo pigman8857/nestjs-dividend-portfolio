@@ -82,11 +82,12 @@ Seven feature domains, each with a `<domain>.schema.ts` and `<domain>s.module.ts
 
 ## Docs
 
-Project documentation lives in `docs/`:
-
-- `docs/domain-model.md` — full field-level reference for all 7 business domains
-- `docs/how-to-add-schema.md` — step-by-step guide to adding a new domain module
-- `how-to-mongodb.md` — general Mongoose usage patterns in this project
+| File | Description |
+|------|-------------|
+| `docs/domain-model.md` | Full field reference for all 7 business domains |
+| `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
+| `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
+| `how-to-mongodb.md` | General Mongoose usage patterns in this project |
 
 ## Docker
 
