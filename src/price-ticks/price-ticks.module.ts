@@ -2,11 +2,15 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule, InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { PriceTick, PriceTickSchema } from './price-tick.schema';
+import { PriceTicksService } from './price-ticks.service';
+import { PriceTicksController } from './price-ticks.controller';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: PriceTick.name, schema: PriceTickSchema }]),
   ],
+  providers: [PriceTicksService],
+  controllers: [PriceTicksController],
   exports: [MongooseModule],
 })
 export class PriceTicksModule implements OnModuleInit {

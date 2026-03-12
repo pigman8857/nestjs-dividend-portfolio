@@ -62,21 +62,21 @@ Feature modules access MongoDB by importing `MongooseModule.forFeature([{ name: 
 
 ### Business domain modules (`src/<domain>/`)
 
-Seven feature domains, each with a `<domain>.schema.ts` and `<domain>s.module.ts`. All monetary values are stored in cents (integers) to avoid floating-point precision issues. See `docs/domain-model.md` for full field references.
+Seven feature domains, each with a `<domain>.schema.ts`, `<domain>s.module.ts`, `<domain>s.service.ts`, and `<domain>s.controller.ts`. All monetary values are stored in cents (integers) to avoid floating-point precision issues. See `docs/domain-model.md` for full field references and `docs/api-reference.md` for all REST endpoints.
 
 | Module | Collection | Notes |
 |--------|------------|-------|
 | `UsersModule` | `users` | Cash balance in cents |
 | `AssetsModule` | `assets` | ETF/fund metadata; ticker is unique uppercase |
-| `PortfoliosModule` | `portfolios` | One position per user per asset (compound unique index) |
-| `TradesModule` | `trades` | Immutable ledger — insert only, always inside a transaction |
+| `PortfoliosModule` | `portfolios` | One position per user per asset (compound unique index); no create/update endpoints — managed via trades |
+| `TradesModule` | `trades` | Immutable ledger — insert only via `POST /trades/buy` or `POST /trades/sell`, always inside a transaction |
 | `PriceTicksModule` | `price_ticks` | Time Series (timeField: `timestamp`, metaField: `metadata`) |
 | `DividendsModule` | `dividends` | Time Series (timeField: `exDate`, metaField: `metadata`) |
 | `AlertsModule` | `alerts` | Price threshold triggers for Change Streams + WebSocket |
 
 **Time Series collections** (`price_ticks`, `dividends`) — their modules implement `OnModuleInit` and call `db.createCollection()` with `timeseries` options on startup if the collection does not yet exist. Never drop and recreate these collections without migrating the data.
 
-**Trades + transactions** — every trade write must use a multi-document transaction: `buy` deducts `User.cashBalanceCents` and upserts `Portfolio.shares`; `sell` does the reverse. Trade documents are never updated after insertion.
+**Trades + transactions** — every trade write must use a multi-document transaction: `buy` deducts `User.cashBalanceCents` and upserts `Portfolio.shares` (recalculating weighted average cost basis); `sell` does the reverse. Trade documents are never updated after insertion. `TradesModule` imports `UsersModule` and `PortfoliosModule` to access their models within the transaction.
 
 **Alerts + Change Streams** — a Change Stream on `price_ticks` watches `closeCents` and fires WebSocket notifications when it crosses an alert's `targetPriceCents`. After firing, `Alert.isTriggered` is set to `true` and `triggeredAt` is recorded.
 
@@ -84,6 +84,7 @@ Seven feature domains, each with a `<domain>.schema.ts` and `<domain>s.module.ts
 
 | File | Description |
 |------|-------------|
+| `docs/api-reference.md` | REST endpoint reference for all 7 domains |
 | `docs/domain-model.md` | Full field reference for all 7 business domains |
 | `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
 | `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
