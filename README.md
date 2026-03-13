@@ -15,7 +15,7 @@ A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trade
 
 ---
 
-## Requirements (as of 2026-03-12)
+## Requirements (as of 2026-03-13)
 
 | Tool | Version |
 |------|---------|
@@ -25,7 +25,7 @@ A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trade
 
 ---
 
-## Key Dependencies (as of 2026-03-12)
+## Key Dependencies (as of 2026-03-13)
 
 | Package | Version |
 |---------|---------|
@@ -187,4 +187,8 @@ npm run test:e2e
 | `docs/domain-model.md` | Full field reference for all 7 business domains |
 | `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
 | `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
-| `how-to-mongodb.md` | General Mongoose usage patterns in this project |
+| `docs/how-to-mongodb.md` | General Mongoose usage patterns in this project |
+| `docs/clean-architecture-migration.md` | Notes on the clean architecture migration |
+| `docs/lesson-learned.md` | Lessons learned and gotchas from building this project |
+| `docs/mongo/time-series-and-system-buckets.md` | MongoDB Time Series collections and system.buckets internals |
+| `docs/mongo/multi-document-transactions.md` | MongoDB multi-document transaction patterns |
