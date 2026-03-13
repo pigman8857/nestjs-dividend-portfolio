@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsEnum, IsInt, IsObject, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  IsDate,
+  IsEnum,
+  IsInt,
+  IsObject,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { DividendFrequency } from '../../domain/dividend.entity';
 
 class DividendMetadataDto {

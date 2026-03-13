@@ -9,7 +9,9 @@ import { DividendsController } from './presentation/dividends.controller';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Dividend.name, schema: DividendSchema }]),
+    MongooseModule.forFeature([
+      { name: Dividend.name, schema: DividendSchema },
+    ]),
   ],
   providers: [
     { provide: DIVIDEND_REPOSITORY, useClass: MongooseDividendRepository },
@@ -25,7 +27,9 @@ export class DividendsModule implements OnModuleInit {
   // This is a no-op if the collection already exists.
   async onModuleInit() {
     const db = this.connection.db!;
-    const collections = await db.listCollections({ name: 'dividends' }).toArray();
+    const collections = await db
+      .listCollections({ name: 'dividends' })
+      .toArray();
     if (collections.length === 0) {
       await db.createCollection('dividends', {
         timeseries: {

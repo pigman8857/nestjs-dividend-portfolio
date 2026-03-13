@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DIVIDEND_REPOSITORY, IDividendRepository } from '../domain/dividend.repository';
+import {
+  DIVIDEND_REPOSITORY,
+  IDividendRepository,
+} from '../domain/dividend.repository';
 import { DividendEntity } from '../domain/dividend.entity';
 
 @Injectable()
