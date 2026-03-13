@@ -4,7 +4,7 @@ import { HydratedDocument } from 'mongoose';
 // MongoDB Time Series collection.
 // Must be created with timeseries options — see dividends.module.ts onModuleInit.
 // timeField: 'exDate' | metaField: 'metadata' | granularity: 'hours'
-@Schema({ collection: 'dividends' })
+@Schema({ collection: 'dividends', autoCreate: false })
 export class Dividend {
   // timeField — the ex-dividend date (shares must be held before this date to qualify)
   @Prop({ required: true })

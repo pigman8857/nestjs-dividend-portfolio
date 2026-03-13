@@ -4,7 +4,7 @@ import { HydratedDocument } from 'mongoose';
 // MongoDB Time Series collection.
 // Must be created with timeseries options — see price-ticks.module.ts onModuleInit.
 // timeField: 'timestamp' | metaField: 'metadata' | granularity: 'hours'
-@Schema({ collection: 'price_ticks' })
+@Schema({ collection: 'price_ticks', autoCreate: false })
 export class PriceTick {
   // timeField — required by MongoDB time series
   @Prop({ required: true })
