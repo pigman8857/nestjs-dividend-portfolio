@@ -17,15 +17,26 @@ services:
 
   mongo:
     image: mongo:6
+    command: --replSet rs0 --bind_ip_all
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { rs.initiate().ok }"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # alloy:
+  #   image: grafana/alloy:latest
+  #   ports:
+  #     - "12345:12345"
+  #   volumes:
+  #     - ./alloy/config.alloy:/etc/alloy/config.alloy
+  #   command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+  #   depends_on:
+  #     - app
 
 volumes:
   mongo_data:
