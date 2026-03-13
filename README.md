@@ -93,9 +93,11 @@ Create a `.env` file in the project root:
 ```env
 NODE_ENV=development
 PORT=3000
-MONGO_URI=mongodb://localhost:27017
+MONGO_URI=mongodb://localhost:27017/?replicaSet=rs0&directConnection=true
 MONGO_DB_NAME=nestjs_dividend_portfolio
 ```
+
+> **Note:** `replicaSet=rs0` and `directConnection=true` are required when running MongoDB via `docker-compose.localhost.yml`. The localhost setup runs MongoDB as a single-node replica set (needed for multi-document transactions). `directConnection=true` bypasses replica set topology discovery so the driver connects directly to `localhost` instead of the internal container hostname.
 
 ### Production
 
