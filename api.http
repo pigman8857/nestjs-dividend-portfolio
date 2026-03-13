@@ -1,0 +1,277 @@
+@baseUrl = http://localhost:3000
+
+# Replace these with real IDs after creating resources
+@userId = REPLACE_ME
+@assetId = REPLACE_ME
+@portfolioId = REPLACE_ME
+@tradeId = REPLACE_ME
+@alertId = REPLACE_ME
+
+
+### ============================================================
+### USERS
+### ============================================================
+
+### List all users
+GET {{baseUrl}}/users
+
+###
+
+### Get user by ID
+GET {{baseUrl}}/users/{{userId}}
+
+###
+
+### Create user
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "name": "John Doe",
+  "cashBalanceCents": 200000
+}
+
+###
+
+### Update user
+PATCH {{baseUrl}}/users/{{userId}}
+Content-Type: application/json
+
+{
+  "cashBalanceCents": 200000
+}
+
+###
+
+### Delete user
+DELETE {{baseUrl}}/users/{{userId}}
+
+
+### ============================================================
+### ASSETS
+### ============================================================
+
+### List all assets
+GET {{baseUrl}}/assets
+
+###
+
+### Find asset by ticker
+GET {{baseUrl}}/assets?ticker=VTI
+
+###
+
+### Get asset by ID
+GET {{baseUrl}}/assets/{{assetId}}
+
+###
+
+### Create asset
+POST {{baseUrl}}/assets
+Content-Type: application/json
+
+{
+  "ticker": "VTI",
+  "name": "Vanguard Total Stock Market ETF",
+  "type": "ETF",
+  "sector": "Broad Market",
+  "expenseRatio": 0.0003,
+  "dividendFrequency": "quarterly",
+  "currentPriceCents": 24500
+}
+
+###
+
+### Update asset
+PATCH {{baseUrl}}/assets/{{assetId}}
+Content-Type: application/json
+
+{
+  "currentPriceCents": 25000
+}
+
+###
+
+### Delete asset
+DELETE {{baseUrl}}/assets/{{assetId}}
+
+
+### ============================================================
+### PORTFOLIOS
+### ============================================================
+
+### List all positions
+GET {{baseUrl}}/portfolios
+
+###
+
+### List positions for a user
+GET {{baseUrl}}/portfolios?userId={{userId}}
+
+###
+
+### Get position by ID
+GET {{baseUrl}}/portfolios/{{portfolioId}}
+
+###
+
+### Delete position
+DELETE {{baseUrl}}/portfolios/{{portfolioId}}
+
+
+### ============================================================
+### TRADES
+### ============================================================
+
+### List all trades
+GET {{baseUrl}}/trades
+
+###
+
+### List trades for a user
+GET {{baseUrl}}/trades?userId={{userId}}
+
+###
+
+### List trades for an asset
+GET {{baseUrl}}/trades?assetId={{assetId}}
+
+###
+
+### Get trade by ID
+GET {{baseUrl}}/trades/{{tradeId}}
+
+###
+
+### Buy (transactional — deducts cash, upserts portfolio position)
+POST {{baseUrl}}/trades/buy
+Content-Type: application/json
+
+{
+  "userId": "69b38a0ad6e252f2ba3e3297",
+  "assetId": "69b38a61d6e252f2ba3e329b",
+  "shares": 10,
+  "pricePerShareCents": 24500
+}
+
+###
+
+### Sell (transactional — reduces shares, adds proceeds to cash)
+POST {{baseUrl}}/trades/sell
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "assetId": "{{assetId}}",
+  "shares": 5,
+  "pricePerShareCents": 25000
+}
+
+
+### ============================================================
+### PRICE TICKS (Time Series)
+### ============================================================
+
+### Get price history for a ticker
+GET {{baseUrl}}/price-ticks?ticker=VTI
+
+###
+
+### Get price history with date range
+GET {{baseUrl}}/price-ticks?ticker=VTI&from=2024-01-01&to=2024-12-31
+
+###
+
+### Insert a price tick
+POST {{baseUrl}}/price-ticks
+Content-Type: application/json
+
+{
+  "timestamp": "2024-06-01T16:00:00.000Z",
+  "metadata": {
+    "ticker": "VTI",
+    "assetId": "{{assetId}}"
+  },
+  "openCents": 24100,
+  "highCents": 24600,
+  "lowCents": 24050,
+  "closeCents": 24500,
+  "volume": 3200000
+}
+
+
+### ============================================================
+### DIVIDENDS (Time Series)
+### ============================================================
+
+### Get dividend history by ticker
+GET {{baseUrl}}/dividends?ticker=VTI
+
+###
+
+### Get dividend history by asset ID
+GET {{baseUrl}}/dividends?assetId={{assetId}}
+
+###
+
+### Insert a dividend record
+POST {{baseUrl}}/dividends
+Content-Type: application/json
+
+{
+  "exDate": "2024-06-20T00:00:00.000Z",
+  "metadata": {
+    "ticker": "VTI",
+    "assetId": "{{assetId}}"
+  },
+  "amountPerShareCents": 85,
+  "paymentDate": "2024-06-28T00:00:00.000Z",
+  "frequency": "quarterly"
+}
+
+
+### ============================================================
+### ALERTS
+### ============================================================
+
+### List all alerts
+GET {{baseUrl}}/alerts
+
+###
+
+### List alerts for a user
+GET {{baseUrl}}/alerts?userId={{userId}}
+
+###
+
+### Get alert by ID
+GET {{baseUrl}}/alerts/{{alertId}}
+
+###
+
+### Create alert
+POST {{baseUrl}}/alerts
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "assetId": "{{assetId}}",
+  "condition": "above",
+  "targetPriceCents": 25000
+}
+
+###
+
+### Update alert
+PATCH {{baseUrl}}/alerts/{{alertId}}
+Content-Type: application/json
+
+{
+  "targetPriceCents": 26000
+}
+
+###
+
+### Delete alert
+DELETE {{baseUrl}}/alerts/{{alertId}}
