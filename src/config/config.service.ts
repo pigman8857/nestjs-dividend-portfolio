@@ -25,4 +25,8 @@ export class ConfigService {
   get mongo(): MongoConfig {
     return this.config.getOrThrow<MongoConfig>('mongo');
   }
+
+  get logLevel(): string {
+    return this.config.get<string>('LOG_LEVEL', 'info');
+  }
 }

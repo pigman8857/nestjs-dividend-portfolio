@@ -1,15 +1,17 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { IUserRepository, USER_REPOSITORY } from '../../users/domain/user.repository';
 import { IPortfolioRepository, PORTFOLIO_REPOSITORY } from '../../portfolios/domain/portfolio.repository';
 import { ITradeRepository, TRADE_REPOSITORY } from '../domain/trade.repository';
 import { TradeEntity } from '../domain/trade.entity';
-import { EntityNotFoundError, InsufficientFundsError } from '../../common/errors/domain.errors';
+import { DomainError, EntityNotFoundError, InsufficientFundsError } from '../../common/errors/domain.errors';
 import { ExecuteTradeDto } from '../presentation/dto/execute-trade.dto';
 
 @Injectable()
 export class ExecuteBuyUseCase {
+  private readonly logger = new Logger(ExecuteBuyUseCase.name);
+
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
     @Inject(PORTFOLIO_REPOSITORY) private readonly portfolios: IPortfolioRepository,
@@ -20,6 +22,8 @@ export class ExecuteBuyUseCase {
   async execute(dto: ExecuteTradeDto): Promise<TradeEntity> {
     const totalAmountCents = dto.shares * dto.pricePerShareCents;
     const session = await this.connection.startSession();
+    const startMs = Date.now();
+    this.logger.debug({ userId: dto.userId, assetId: dto.assetId }, '[ADB-TEST] Starting transaction (buy)');
     try {
       let result: TradeEntity | undefined;
       await session.withTransaction(async () => {
@@ -60,7 +64,26 @@ export class ExecuteBuyUseCase {
           session,
         );
       });
+      const durationMs = Date.now() - startMs;
+      this.logger.log(
+        { userId: dto.userId, assetId: dto.assetId, shares: dto.shares, totalAmountCents, durationMs },
+        '[ADB-TEST] Transaction committed (buy) — ADB supports multi-doc transactions ✓',
+      );
       return result!;
+    } catch (err: any) {
+      const durationMs = Date.now() - startMs;
+      if (err instanceof DomainError) {
+        this.logger.warn(
+          { userId: dto.userId, error: err.name, durationMs },
+          '[ADB-TEST] Transaction aborted (buy) — domain error, not a MongoDB failure',
+        );
+      } else {
+        this.logger.error(
+          { userId: dto.userId, error: err.message, durationMs },
+          '[ADB-TEST] Transaction aborted (buy) ✗',
+        );
+      }
+      throw err;
     } finally {
       await session.endSession();
     }

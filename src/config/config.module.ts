@@ -19,6 +19,9 @@ import mongoConfig from './mongo.config';
         PORT: Joi.number().default(3000),
         MONGO_URI: Joi.string().uri().required(),
         MONGO_DB_NAME: Joi.string().required(),
+        LOG_LEVEL: Joi.string()
+          .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace')
+          .default('info'),
       }),
       validationOptions: {
         abortEarly: true,

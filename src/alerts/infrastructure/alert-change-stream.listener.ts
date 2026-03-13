@@ -44,6 +44,10 @@ export class AlertChangeStreamListener {
             closeCents,
             ticker,
           } satisfies AlertTriggeredEvent);
+          this.logger.log(
+            { alertId: alert.id, userId: alert.userId, assetId, closeCents },
+            'Alert triggered',
+          );
         }
       }
     } catch (err) {

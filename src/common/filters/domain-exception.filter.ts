@@ -1,4 +1,4 @@
-import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, Injectable, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import {
   DomainError,
@@ -7,8 +7,11 @@ import {
   InsufficientSharesError,
 } from '../errors/domain.errors';
 
+@Injectable()
 @Catch(DomainError)
 export class DomainExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(DomainExceptionFilter.name);
+
   catch(exception: DomainError, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -20,6 +23,8 @@ export class DomainExceptionFilter implements ExceptionFilter {
       exception instanceof InsufficientSharesError
     )
       status = 422;
+
+    this.logger.warn({ error: exception.name, message: exception.message, status }, 'Domain error');
 
     response.status(status).json({
       error: exception.name,

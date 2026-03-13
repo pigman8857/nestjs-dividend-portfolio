@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { MongooseModule, InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { PriceTick, PriceTickSchema } from './price-tick.schema';
@@ -19,21 +19,32 @@ import { PriceTicksController } from './presentation/price-ticks.controller';
   exports: [PRICE_TICK_REPOSITORY, PriceTicksService],
 })
 export class PriceTicksModule implements OnModuleInit {
+  private readonly logger = new Logger(PriceTicksModule.name);
+
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
-  // Time Series collections must be created with options before any insert.
-  // This is a no-op if the collection already exists.
   async onModuleInit() {
     const db = this.connection.db!;
     const collections = await db.listCollections({ name: 'price_ticks' }).toArray();
     if (collections.length === 0) {
-      await db.createCollection('price_ticks', {
-        timeseries: {
-          timeField: 'timestamp',
-          metaField: 'metadata',
-          granularity: 'hours',
-        },
-      });
+      try {
+        await db.createCollection('price_ticks', {
+          timeseries: {
+            timeField: 'timestamp',
+            metaField: 'metadata',
+            granularity: 'hours',
+          },
+        });
+        this.logger.log('[ADB-TEST] Time Series collection "price_ticks" created — ADB supports timeseries ✓');
+      } catch (err: any) {
+        this.logger.error(
+          { error: err.message, code: err.code },
+          '[ADB-TEST] FAILED to create Time Series collection "price_ticks" — ADB may not support timeseries ✗',
+        );
+        throw err;
+      }
+    } else {
+      this.logger.log('[ADB-TEST] Time Series collection "price_ticks" already exists, skipping creation');
     }
   }
 }
