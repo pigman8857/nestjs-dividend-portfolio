@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Dividend, DividendDocument } from '../dividend.schema';
 import { IDividendRepository } from '../domain/dividend.repository';
 import { DividendEntity } from '../domain/dividend.entity';
@@ -34,14 +34,14 @@ export class MongooseDividendRepository implements IDividendRepository {
     return docs.map((d) => this.toEntity(d.toObject()));
   }
 
-  private toEntity(doc: Dividend & { _id: Types.ObjectId }): DividendEntity {
+  private toEntity(doc: Record<string, any>): DividendEntity {
     return new DividendEntity(
       doc._id.toString(),
       doc.exDate,
       doc.metadata,
       doc.amountPerShareCents,
       doc.paymentDate,
-      doc.frequency as DividendEntity['frequency'],
+      doc.frequency
     );
   }
 }
