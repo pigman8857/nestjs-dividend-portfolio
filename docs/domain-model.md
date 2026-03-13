@@ -28,7 +28,7 @@ This document describes the business domains for the **High-Yield Portfolio & Di
 
 ## Users
 
-**File:** `src/users/user.schema.ts`
+**File:** `src/users/infrastructure/user.schema.ts`
 
 Represents a registered user and their available cash balance.
 
@@ -42,7 +42,7 @@ Represents a registered user and their available cash balance.
 
 ## Assets
 
-**File:** `src/assets/asset.schema.ts`
+**File:** `src/assets/infrastructure/asset.schema.ts`
 
 Represents a tradeable ETF or fund.
 
@@ -60,7 +60,7 @@ Represents a tradeable ETF or fund.
 
 ## Portfolios
 
-**File:** `src/portfolios/portfolio.schema.ts`
+**File:** `src/portfolios/infrastructure/portfolio.schema.ts`
 
 Represents a user's open position in a single asset. One document per user per asset enforced by a compound unique index.
 
@@ -78,7 +78,7 @@ Represents a user's open position in a single asset. One document per user per a
 
 ## Trades
 
-**File:** `src/trades/trade.schema.ts`
+**File:** `src/trades/infrastructure/trade.schema.ts`
 
 An immutable ledger of every buy and sell. Never updated — only inserted.
 
@@ -104,7 +104,7 @@ Every trade write **must** use a multi-document transaction to atomically:
 
 ## Price Ticks *(Time Series)*
 
-**File:** `src/price-ticks/price-tick.schema.ts`
+**File:** `src/price-ticks/infrastructure/price-tick.schema.ts`
 
 Stores high-frequency OHLCV price data per asset. Uses MongoDB's native Time Series collection for efficient time-range queries and storage compression.
 
@@ -116,7 +116,7 @@ Stores high-frequency OHLCV price data per asset. Uses MongoDB's native Time Ser
 | `openCents` | `number` | Opening price in cents |
 | `highCents` | `number` | |
 | `lowCents` | `number` | |
-| `closeCents` | `number` | Closing price in cents — watched by Change Streams for alerts |
+| `closeCents` | `number` | Closing price in cents — checked against active alerts via `price_tick.inserted` event |
 | `volume` | `number` | |
 
 **Time Series options:** `timeField: timestamp` · `metaField: metadata` · `granularity: hours`
@@ -125,7 +125,7 @@ Stores high-frequency OHLCV price data per asset. Uses MongoDB's native Time Ser
 
 ## Dividends *(Time Series)*
 
-**File:** `src/dividends/dividend.schema.ts`
+**File:** `src/dividends/infrastructure/dividend.schema.ts`
 
 Historical dividend payout records per asset. Uses MongoDB's native Time Series collection.
 
@@ -144,9 +144,9 @@ Historical dividend payout records per asset. Uses MongoDB's native Time Series 
 
 ## Alerts
 
-**File:** `src/alerts/alert.schema.ts`
+**File:** `src/alerts/infrastructure/alert.schema.ts`
 
-Price threshold alerts. A Change Stream watches the `price_ticks` collection and fires a WebSocket notification when `closeCents` crosses `targetPriceCents`, then marks the alert as triggered.
+Price threshold alerts. When a price tick is inserted, `PriceTicksService` emits a `price_tick.inserted` event. `AlertChangeStreamListener` handles the event, checks active alerts for the asset, and fires a WebSocket notification when `closeCents` crosses `targetPriceCents`, then marks the alert as triggered.
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -159,4 +159,4 @@ Price threshold alerts. A Change Stream watches the `price_ticks` collection and
 
 **Indexes:**
 - `{ userId, isTriggered }` — fetch active alerts per user
-- `{ assetId, isTriggered }` — fetch active alerts per asset (used by Change Stream handler)
+- `{ assetId, isTriggered }` — fetch active alerts per asset (used by the `price_tick.inserted` event handler)

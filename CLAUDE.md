@@ -62,7 +62,18 @@ Feature modules access MongoDB by importing `MongooseModule.forFeature([{ name: 
 
 ### Business domain modules (`src/<domain>/`)
 
-Seven feature domains, each with a `<domain>.schema.ts`, `<domain>s.module.ts`, `<domain>s.service.ts`, and `<domain>s.controller.ts`. All monetary values are stored in cents (integers) to avoid floating-point precision issues. See `docs/domain-model.md` for full field references and `docs/api-reference.md` for all REST endpoints.
+Seven feature domains, each structured with clean architecture layers:
+
+```
+src/<domain>/
+  domain/          — entities, repository interfaces
+  application/     — service (use cases)
+  infrastructure/  — Mongoose schema, repository implementation, listeners
+  presentation/    — controller, DTOs, WebSocket gateway
+  <domain>s.module.ts
+```
+
+All monetary values are stored in cents (integers) to avoid floating-point precision issues. See `docs/domain-model.md` for full field references and `docs/api-reference.md` for all REST endpoints.
 
 | Module | Collection | Notes |
 |--------|------------|-------|
@@ -78,7 +89,9 @@ Seven feature domains, each with a `<domain>.schema.ts`, `<domain>s.module.ts`, 
 
 **Trades + transactions** — every trade write must use a multi-document transaction: `buy` deducts `User.cashBalanceCents` and upserts `Portfolio.shares` (recalculating weighted average cost basis); `sell` does the reverse. Trade documents are never updated after insertion. `TradesModule` imports `UsersModule` and `PortfoliosModule` to access their models within the transaction.
 
-**Alerts + Change Streams** — a Change Stream on `price_ticks` watches `closeCents` and fires WebSocket notifications when it crosses an alert's `targetPriceCents`. After firing, `Alert.isTriggered` is set to `true` and `triggeredAt` is recorded.
+**Alerts + EventEmitter** — `PriceTicksService` emits a `price_tick.inserted` event (via `EventEmitter2`) after every successful insert. `AlertChangeStreamListener` subscribes with `@OnEvent('price_tick.inserted')`, checks active alerts for the asset, and fires a `alert.triggered` event when `closeCents` crosses `targetPriceCents`. `AlertsGateway` broadcasts the WebSocket notification. After firing, `Alert.isTriggered` is set to `true` and `triggeredAt` is recorded.
+
+> **Why not a MongoDB Change Stream on `price_ticks`?** Time series collections are backed by internal `system.buckets.*` bucket collections — MongoDB forbids `.watch()` directly on them (error 166 `CommandNotSupportedOnView`). Watching the database and filtering by `ns.coll: 'price_ticks'` also fails because the events surface under `ns.coll: 'system.buckets.price_ticks'` with bucket-level (not document-level) payloads. The application-level event approach is simpler and avoids all of these constraints.
 
 ## Docs
 

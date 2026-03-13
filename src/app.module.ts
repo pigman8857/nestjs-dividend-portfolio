@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
@@ -15,6 +16,7 @@ import { AlertsModule } from './alerts/alerts.module';
   imports: [
     ConfigModule,
     DatabaseModule,
+    EventEmitterModule.forRoot(),
     UsersModule,
     AssetsModule,
     PortfoliosModule,

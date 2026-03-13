@@ -2,16 +2,21 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule, InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { PriceTick, PriceTickSchema } from './price-tick.schema';
-import { PriceTicksService } from './price-ticks.service';
-import { PriceTicksController } from './price-ticks.controller';
+import { MongoosePriceTickRepository } from './infrastructure/price-tick.repository.impl';
+import { PRICE_TICK_REPOSITORY } from './domain/price-tick.repository';
+import { PriceTicksService } from './application/price-ticks.service';
+import { PriceTicksController } from './presentation/price-ticks.controller';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: PriceTick.name, schema: PriceTickSchema }]),
   ],
-  providers: [PriceTicksService],
+  providers: [
+    { provide: PRICE_TICK_REPOSITORY, useClass: MongoosePriceTickRepository },
+    PriceTicksService,
+  ],
   controllers: [PriceTicksController],
-  exports: [MongooseModule],
+  exports: [PRICE_TICK_REPOSITORY, PriceTicksService],
 })
 export class PriceTicksModule implements OnModuleInit {
   constructor(@InjectConnection() private readonly connection: Connection) {}

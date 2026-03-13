@@ -124,3 +124,103 @@ Then populate when querying:
 ```ts
 this.orderModel.findById(id).populate('cat').exec();
 ```
+
+---
+
+## Time Series Collections
+
+Time Series collections require special creation options (`timeseries`, `timeField`, `metaField`) that must be set at creation time and cannot be changed after the fact. Mongoose's `autoCreate` would create a plain collection before the module can apply these options, so it must be disabled.
+
+### Schema
+
+```ts
+// src/price-ticks/price-tick.schema.ts
+@Schema({ collection: 'price_ticks', autoCreate: false, timestamps: false })
+export class PriceTick {
+  @Prop({ required: true }) timestamp: Date;
+  @Prop({ type: Object, required: true }) metadata: { ticker: string; assetId: string };
+  @Prop({ required: true }) closeCents: number;
+  // ...other OHLCV fields
+}
+export type PriceTickDocument = HydratedDocument<PriceTick>;
+export const PriceTickSchema = SchemaFactory.createForClass(PriceTick);
+```
+
+**`autoCreate: false` is required.** Without it, Mongoose creates the collection as a plain collection before `onModuleInit` runs, and the subsequent `createCollection()` with `timeseries` options fails with "collection already exists".
+
+### Module — create collection on startup
+
+```ts
+// src/price-ticks/price-ticks.module.ts
+@Module({ ... })
+export class PriceTicksModule implements OnModuleInit {
+  constructor(@InjectConnection() private readonly connection: Connection) {}
+
+  async onModuleInit() {
+    const db = this.connection.db!;
+    const existing = await db.listCollections({ name: 'price_ticks' }).toArray();
+    if (existing.length === 0) {
+      await db.createCollection('price_ticks', {
+        timeseries: {
+          timeField: 'timestamp',
+          metaField: 'metadata',
+          granularity: 'hours',
+        },
+      });
+    }
+  }
+}
+```
+
+The `listCollections` guard makes this a no-op on every startup after the first.
+
+---
+
+## Change Streams
+
+### Standard collections
+
+```ts
+const changeStream = db.collection('trades').watch([], { fullDocument: 'updateLookup' });
+changeStream.on('change', (change) => { ... });
+```
+
+### Time Series collections — do NOT watch directly
+
+**MongoDB does not support Change Streams on time series collections.** Calling `.watch()` on one throws error 166 `CommandNotSupportedOnView` at runtime (time series collections are views over internal `system.buckets.*` collections).
+
+Watching the database and filtering by `ns.coll: 'price_ticks'` also fails — the events surface under `ns.coll: 'system.buckets.price_ticks'` with bucket-level payloads, not individual document payloads.
+
+**The correct pattern: emit an application-level event from the service after insert.**
+
+```ts
+// price-ticks.service.ts — emit after every insert
+@Injectable()
+export class PriceTicksService {
+  constructor(
+    @Inject(PRICE_TICK_REPOSITORY) private readonly repo: IPriceTickRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async create(data: Omit<PriceTickEntity, 'id'>): Promise<PriceTickEntity[]> {
+    const ticks = await this.repo.create(data);
+    for (const tick of ticks) {
+      this.eventEmitter.emit('price_tick.inserted', tick);
+    }
+    return ticks;
+  }
+}
+```
+
+```ts
+// alert-change-stream.listener.ts — subscribe with @OnEvent
+@Injectable()
+export class AlertChangeStreamListener {
+  @OnEvent('price_tick.inserted')
+  async handlePriceTickInserted(tick: PriceTickEntity): Promise<void> {
+    // check alerts and fire WebSocket notifications
+  }
+}
+```
+
+`EventEmitterModule.forRoot()` must be registered in `AppModule` for `EventEmitter2` to be injectable globally.

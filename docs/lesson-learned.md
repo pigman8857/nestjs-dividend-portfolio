@@ -171,3 +171,55 @@ This affects any client connecting to a replica set from outside its network —
 
 **Where**
 Both the application `MONGO_URI` and any external tools (MongoDB extension, mongosh, Compass) need `directConnection=true` when connecting to a Dockerized replica set from the host machine.
+
+---
+
+## LL-004 — Change Stream Not Supported on Time Series Collections
+
+**Date:** 2026-03-13
+
+### Issue
+
+On application startup, the following unhandled error was thrown and crashed the process:
+
+```
+MongoServerError: Namespace mongo_oracle.price_ticks is a timeseries collection
+code: 166, codeName: 'CommandNotSupportedOnView'
+```
+
+The error was emitted from the `ChangeStream` instance in `AlertChangeStreamListener`.
+
+### Fix
+
+Changed the change stream from watching the collection directly to watching at the database level with a pipeline filter:
+
+```typescript
+// Before
+this.changeStream = db.collection('price_ticks').watch([], { fullDocument: 'updateLookup' });
+
+// After
+this.changeStream = db.watch(
+  [{ $match: { 'ns.coll': 'price_ticks', operationType: 'insert' } }],
+  { fullDocument: 'updateLookup' },
+);
+```
+
+File changed:
+- `src/alerts/infrastructure/alert-change-stream.listener.ts`
+
+### Knowledge
+
+**What**
+Calling `.watch()` directly on a time series collection throws error 166 `CommandNotSupportedOnView`. The change stream never opens, and the unhandled `error` event crashes the process.
+
+**Why**
+Under the hood, a MongoDB time series collection is a **view** over an internal `system.buckets.<name>` bucket collection. Change Streams cannot be opened on views — only on real collections, databases, or the full deployment.
+
+**How**
+Watch at the database level instead. A database-level change stream receives events for all collections in that database, including writes into time series collections. A `$match` stage filters the stream down to only `insert` events on the `price_ticks` namespace. The shape of the resulting change documents is identical, so no downstream handler code needed to change.
+
+**When**
+This affects any code that calls `.watch()` on a time series collection. The error occurs at stream initialization (on startup), not at insert time.
+
+**Where**
+This is a MongoDB server-level restriction. Any MongoDB client attempting `.watch()` on a time series collection will get this error. The workaround (database-level watch + `$match`) is driver-agnostic.

@@ -149,9 +149,9 @@ POST {{baseUrl}}/trades/buy
 Content-Type: application/json
 
 {
-  "userId": "69b38a0ad6e252f2ba3e3297",
-  "assetId": "69b38a61d6e252f2ba3e329b",
-  "shares": 10,
+  "userId": "69b397bff2473a729c3a7f39",
+  "assetId": "69b397d6f2473a729c3a7f3b",
+  "shares": 1,
   "pricePerShareCents": 24500
 }
 

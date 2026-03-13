@@ -10,7 +10,7 @@ A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trade
 - **Trade ledger** — immutable buy/sell records with multi-document ACID transactions
 - **Dividend history** — MongoDB Time Series collections for efficient historical payout queries
 - **Price ticks** — OHLCV time series data per asset
-- **Price alerts** — threshold-based alerts designed for Change Stream + WebSocket integration
+- **Price alerts** — threshold-based alerts triggered via application events (`EventEmitter2`) and broadcast over WebSocket
 - **Production-first config** — environment variables validated on startup; no `.env` in production
 
 ---
@@ -43,7 +43,7 @@ A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trade
 
 ## Domain Model
 
-Seven business domains, each with its own schema and module:
+Seven business domains, each structured with clean architecture layers (`domain/`, `application/`, `infrastructure/`, `presentation/`):
 
 | Domain | Collection | Type | Description |
 |--------|------------|------|-------------|

@@ -1,13 +1,18 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Portfolio, PortfolioSchema } from './portfolio.schema';
-import { PortfoliosService } from './portfolios.service';
-import { PortfoliosController } from './portfolios.controller';
+import { Portfolio, PortfolioSchema } from './infrastructure/portfolio.schema';
+import { MongoosePortfolioRepository } from './infrastructure/portfolio.repository.impl';
+import { PORTFOLIO_REPOSITORY } from './domain/portfolio.repository';
+import { PortfoliosService } from './application/portfolios.service';
+import { PortfoliosController } from './presentation/portfolios.controller';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Portfolio.name, schema: PortfolioSchema }])],
-  providers: [PortfoliosService],
+  providers: [
+    { provide: PORTFOLIO_REPOSITORY, useClass: MongoosePortfolioRepository },
+    PortfoliosService,
+  ],
   controllers: [PortfoliosController],
-  exports: [MongooseModule],
+  exports: [PORTFOLIO_REPOSITORY, PortfoliosService],
 })
 export class PortfoliosModule {}
