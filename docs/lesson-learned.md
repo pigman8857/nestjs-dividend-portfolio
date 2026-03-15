@@ -223,3 +223,40 @@ This affects any code that calls `.watch()` on a time series collection. The err
 
 **Where**
 This is a MongoDB server-level restriction. Any MongoDB client attempting `.watch()` on a time series collection will get this error. The workaround (database-level watch + `$match`) is driver-agnostic.
+
+---
+
+## LL-005 — ADB Performance Characteristics (Singapore Region)
+
+**Date:** 2026-03-15
+
+### Observed Baseline
+
+Measured from local dev machine → Oracle ADB (`ap-singapore-1`) with `retryWrites=false&loadBalanced=true&ssl=true`.
+
+| Operation | Avg latency | Notes |
+|-----------|-------------|-------|
+| TCP connect to ADB | ~37ms | Cross-region TLS floor |
+| Simple reads (`GET /users`, etc.) | ~36–44ms | ~1 RTT — NestJS/Mongoose overhead is 0–7ms |
+| Simple writes (`POST /users`, etc.) | ~38–41ms | ~1 RTT |
+| Time Series insert (`POST /price-ticks`) | ~40ms | Same as simple write |
+| ACID transaction buy (`POST /trades/buy`) | ~220ms | ~6 RTTs over TLS |
+| ACID transaction sell (`POST /trades/sell`) | ~182ms | ~5 RTTs over TLS |
+
+### Knowledge
+
+**What**
+All latency is bounded by the ~37ms network RTT between the app and ADB. NestJS + Mongoose processing overhead is negligible (0–7ms).
+
+**Why — Transaction cost is structural**
+With `retryWrites=false` and `loadBalanced=true`, every ACID transaction runs as sequential round-trips over TLS: `begin → write users → write portfolios → write trades → commit`. At ~37ms per RTT, 5–6 round-trips = ~185–220ms. This is expected behaviour, not a bug.
+
+**How to improve if needed**
+1. **Collocate NestJS in OCI Singapore** — same-region RTT drops to ~1–2ms, bringing transactions down to ~10–20ms.
+2. **Batch Time Series inserts** — send multiple ticks per request instead of one-at-a-time to reduce round-trips per operation.
+
+**When**
+This is a known characteristic for any app connecting to OCI ADB from outside its region. Relevant any time trade throughput or latency SLOs are discussed.
+
+**Where**
+Applies to all DB operations. Reads and simple writes are acceptable for a dev/portfolio app. Transactions would need collocation to meet sub-50ms targets.

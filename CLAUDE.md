@@ -102,7 +102,14 @@ All monetary values are stored in cents (integers) to avoid floating-point preci
 | `docs/domain-model.md` | Full field reference for all 7 business domains |
 | `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
 | `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
-| `how-to-mongodb.md` | General Mongoose usage patterns in this project |
+| `docs/how-to-mongodb.md` | General Mongoose usage patterns in this project |
+| `docs/clean-architecture-migration.md` | Migration log — flat NestJS structure to clean architecture |
+| `docs/lesson-learned.md` | Operational lessons (ADB, Time Series, transactions, replica sets) |
+| `docs/mongo/time-series-and-system-buckets.md` | Deep dive: Time Series collections and system.buckets constraints |
+| `docs/mongo/multi-document-transactions.md` | Deep dive: ACID transactions and replica set requirements |
+| `docs/plans/logger-implementation-v1.md` | Implementation plan for nestjs-pino structured logging |
+| `docs/test-result/` | OCI ADB integration test results (per run) |
+| `docs/worklogs/` | Daily work logs |
 
 ## Docker
 

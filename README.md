@@ -1,6 +1,8 @@
-# nestjs-dividend-portfolio
+# nestjs-dividend-portfolio (MongoOracle)
 
-A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trades, and projecting dividend yields — backed by MongoDB.
+A NestJS REST API for tracking high-yield ETF and fund portfolios, logging trades, and projecting dividend yields — backed by MongoDB or **Oracle ADB MongoDB-compatible API**.
+
+**nestjs-dividend-portfolio** is the application. **MongoOracle** is the project name used to test Oracle ADB MongoDB compatibility with this stack.
 
 ---
 
@@ -99,6 +101,29 @@ MONGO_DB_NAME=nestjs_dividend_portfolio
 
 > **Note:** `replicaSet=rs0` and `directConnection=true` are required when running MongoDB via `docker-compose.localhost.yml`. The localhost setup runs MongoDB as a single-node replica set (needed for multi-document transactions). `directConnection=true` bypasses replica set topology discovery so the driver connects directly to `localhost` instead of the internal container hostname.
 
+### Oracle ADB (MongoDB-compatible API)
+
+Infra provisioning is managed by a separate Terraform repo: [nestjs-dividend-portfolio-infra](https://github.com/pigman8857/nestjs-dividend-portfolio-infra)
+
+After `terraform apply` completes, get the connection string:
+
+```bash
+terraform output -raw mongo_uri_full
+```
+
+Then set in `.env`:
+
+```env
+MONGO_URI=mongodb://<user>:<password>@<tenancy-prefix>-<adb-name>.adb.<region>.oraclecloudapps.com:27017/mongoapp?authMechanism=PLAIN&authSource=$external&ssl=true&retryWrites=false&loadBalanced=true
+MONGO_DB_NAME=mongoapp
+```
+
+> `MONGO_DB_NAME` must equal the Oracle schema username (`mongoapp`). Using any other database name will result in a `listCollections not authorized` error.
+>
+> Required connection params for ADB: `retryWrites=false`, `loadBalanced=true`, `authMechanism=PLAIN`, `authSource=$external`, `ssl=true`.
+
+See [issue-fix-summary-01.md](https://github.com/pigman8857/nestjs-dividend-portfolio-infra/blob/main/docs/issue-fix-summaries/issue-fix-summary-01.md) and [issue-fix-summary-02.md](https://github.com/pigman8857/nestjs-dividend-portfolio-infra/blob/main/docs/issue-fix-summaries/issue-fix-summary-02.md) for provisioning issues found and fixed during initial setup.
+
 ### Production
 
 Set environment variables on the host or in your container platform. Do **not** use a `.env` file in production.
@@ -178,17 +203,46 @@ npm run test:e2e
 
 ---
 
+## OCI ADB Compatibility
+
+This app has been integration-tested against Oracle ADB MongoDB-compatible API (`ap-singapore-1`). All features confirmed working:
+
+- Standard CRUD, indexed queries, compound unique indexes
+- Multi-document ACID transactions
+- Time Series collection writes and range queries
+- Application-level event-driven alert triggering (EventEmitter2)
+
+**Test environment:**
+- **App:** running on local dev machine (Thailand)
+- **Database:** Oracle ADB Always Free tier, hosted in `ap-singapore-1`
+
+**Performance baseline (local dev → OCI Singapore):**
+
+| Operation | Avg latency | Notes |
+|-----------|-------------|-------|
+| Reads / simple writes | ~37–40ms | ~1 RTT; NestJS/Mongoose overhead is <7ms |
+| ACID transactions (buy/sell) | ~180–225ms | 5–6 sequential TLS round-trips |
+
+Transaction latency is structural — `retryWrites=false` + `loadBalanced=true` requires sequential round-trips per transaction step. Both the cross-region network hop and the Always Free tier's single-OCPU limit contribute to this baseline. Collocating the app in OCI `ap-singapore-1` would reduce the RTT component to ~1–2ms.
+
+See [`docs/test-result/`](docs/test-result/) for full test reports.
+
+---
+
 ## Documentation
 
 | File | Description |
 |------|-------------|
-| `docs/api-reference.md` | REST endpoint reference for all 7 domains |
-| `docs/user-flows.md` | End-to-end business and user flows |
-| `docs/domain-model.md` | Full field reference for all 7 business domains |
-| `docs/how-to-add-schema.md` | Guide to adding a new domain schema and module |
-| `docs/how-to-add-api.md` | Guide to adding a service and controller to a domain |
-| `docs/how-to-mongodb.md` | General Mongoose usage patterns in this project |
-| `docs/clean-architecture-migration.md` | Notes on the clean architecture migration |
-| `docs/lesson-learned.md` | Lessons learned and gotchas from building this project |
-| `docs/mongo/time-series-and-system-buckets.md` | MongoDB Time Series collections and system.buckets internals |
-| `docs/mongo/multi-document-transactions.md` | MongoDB multi-document transaction patterns |
+| [`docs/api-reference.md`](docs/api-reference.md) | REST endpoint reference for all 7 domains |
+| [`docs/user-flows.md`](docs/user-flows.md) | End-to-end business and user flows |
+| [`docs/domain-model.md`](docs/domain-model.md) | Full field reference for all 7 business domains |
+| [`docs/how-to-add-schema.md`](docs/how-to-add-schema.md) | Guide to adding a new domain schema and module |
+| [`docs/how-to-add-api.md`](docs/how-to-add-api.md) | Guide to adding a service and controller to a domain |
+| [`docs/how-to-mongodb.md`](docs/how-to-mongodb.md) | General Mongoose usage patterns in this project |
+| [`docs/clean-architecture-migration.md`](docs/clean-architecture-migration.md) | Notes on the clean architecture migration |
+| [`docs/lesson-learned.md`](docs/lesson-learned.md) | Operational lessons and gotchas (ADB, Time Series, transactions) |
+| [`docs/mongo/time-series-and-system-buckets.md`](docs/mongo/time-series-and-system-buckets.md) | MongoDB Time Series collections and system.buckets internals |
+| [`docs/mongo/multi-document-transactions.md`](docs/mongo/multi-document-transactions.md) | MongoDB multi-document transaction patterns |
+| [`docs/plans/logger-implementation-v1.md`](docs/plans/logger-implementation-v1.md) | Implementation plan for nestjs-pino structured logging |
+| [`docs/test-result/`](docs/test-result/) | OCI ADB integration test results (per run) |
+| [`docs/worklogs/`](docs/worklogs/) | Daily work logs |
